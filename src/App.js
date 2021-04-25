@@ -1,22 +1,31 @@
+
+
 import React, {useState, useEffect} from 'react';
 import { Card, CardContent, FormControl, MenuItem, Select } from '@material-ui/core';
 import InfoBox from './InfoBox';
 import Map from './Map'
 import './App.css';
+import Table from './Table';
+import {sortData} from './utils';
+import Linegraph from './Linegraph';
+
 
 function App() {
 
-  // State - is how to write a variable in react
-  // Initializing the variable to empty array
-  const [countries, setCountries] = useState([]);
 
-  // Track what we have selected
-  // To map to the dropdown go to the dropdown
-  // add it and add the country variable to the value={country}
+  const [countries, setCountries] = useState([]);
   const [country, setCountry] = useState('worldwide');
   const [countryInfo, setCountryInfo] = useState({});
+  const [tableData, setTableData] = useState([]);
   
 
+  useEffect(() => {
+    fetch("https://disease.sh/v3/covid-19/all")
+    .then((response) => response.json())
+    .then((data) => {
+      setCountryInfo(data);
+    })
+  }, []);
   // https://disease.sh/v3/covid-19/countries
   // useEffect (() => {}) runs a piece of code on any given condition
   
@@ -25,37 +34,25 @@ function App() {
   // the countries variable changees
   
   useEffect(() => {
-    // the code in here will only run once when the
-    // component loads and not again after.
-
-    // async -> send a request, wait for it, do something with it
     const getCountriesData = async () =>  {
 
-      // fetch and await the data
+     
       await fetch("https://disease.sh/v3/covid-19/countries")
-      // set the response of the data to json
       .then((response) => response.json())
-      // response into a data variable
       .then((data) => {
-
-        // map out each country 
-        // assign it to a countries variable
-
         const countries = data.map((country) => (
           {
             name: country.country,
-            value: country.countryInfo.iso2
+            value: country.countryInfo.iso2,
           }
         ));
 
-        // set the countries to countries
+        const sortedData = sortData(data);
+        setTableData(sortedData);
         setCountries(countries);
       });
 
     }
-    
-
-    //  call the data
     getCountriesData();
   }, []);
 
@@ -82,7 +79,7 @@ console.log(countryInfo);
         {/* Header */}
     <div className='app__header'>
       {/* Title */}
-      <h1>Covid tracker</h1>
+      <h1>Observing Covid Statistics</h1>
       {/* Dropdown */}
       <FormControl className='app__dropdown'>
         <Select variant="outlined" onChange={onCountryChange} value={country}>
@@ -99,13 +96,13 @@ console.log(countryInfo);
       </FormControl>
     </div>
     <div className='app__stats'>
-       <InfoBox title='Covid cases' cases={123} total={2000}>
+       <InfoBox title='Covid cases' cases={countryInfo.todayCases} total={countryInfo.cases}>
 
       </InfoBox>
-      <InfoBox title='Recovered' cases={456} total={4000}>
+      <InfoBox title='Recovered' cases={countryInfo.todayRecovered} total={countryInfo.recovered}>
 
       </InfoBox>
-      <InfoBox title='Deaths' cases={789} total={5000}>
+      <InfoBox title='Deaths' cases={countryInfo.todayDeaths} total={countryInfo.deaths}>
 
       </InfoBox>
     </div>
@@ -117,7 +114,9 @@ console.log(countryInfo);
       {/* Graph */}
       <CardContent>
        <h3>Live Cases By Country</h3> 
+       <Table countries={tableData}/>
        <h3>Worldwide New Cases</h3>
+       <Linegraph />
       </CardContent>
 
     </Card>
